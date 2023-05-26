@@ -1,0 +1,27 @@
+POST http://127.0.0.1:8000/ugc/api/v1/review/
+Content-Type: application/json
+
+{
+    "user_id": "50027172",
+    "movie_id": "tt0120338",
+    "text": "wqeqweqweqwedsd3",
+    "value": "10"
+}
+###
+GET http://127.0.0.1:8000/ugc/api/v1/review/63f8c1bc5d640eec09a48a4e
+###
+POST http://127.0.0.1:8000/ugc/api/v1/review/like
+Content-Type: application/json
+ 
+{
+    "user_id": "5002711172",
+    "review_id": "63f04587f760991ab58539b7",
+    "value": "10"
+}
+###
+GET http://127.0.0.1:8000/ugc/api/v1/review/list/tt0120338?sort[rating]=-1
+###
+GET http://127.0.0.1:8000/ugc/api/v1/review/list/tt0120338?sort[count]=-1
+
+###
+DELETE http://127.0.0.1:8000/ugc/api/v1/review/clear_all/

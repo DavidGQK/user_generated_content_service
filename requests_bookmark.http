@@ -1,0 +1,19 @@
+POST http://127.0.0.1:8000/ugc/api/v1/bookmark/
+Content-Type: application/json
+
+{
+    "user_id": "50027171",
+    "movie_id": "tt012033181"
+}
+###
+GET http://127.0.0.1:8000/ugc/api/v1/bookmark/63f8c0d15d640eec09a48a33
+###
+GET http://127.0.0.1:8000/ugc/api/v1/bookmark/list/500271711
+###
+DELETE http://127.0.0.1:8000/ugc/api/v1/bookmark/
+Content-Type: application/json
+
+{
+    "user_id": "50027171",
+    "movie_id": "tt012033181"
+} 

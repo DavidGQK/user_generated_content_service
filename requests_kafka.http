@@ -1,0 +1,32 @@
+GET http://127.0.0.1:8000/ugc/api/v1/kafka/
+Content-Type: application/json
+###
+POST http://127.0.0.1:8000/ugc/api/v1/kafka/views/
+Content-Type: application/json
+
+{
+    "user_id": "500271",
+    "movie_id": "tt0120338",
+    "value": "161111111"
+}
+###
+POST http://127.0.0.1:8000/ugc/api/v1/kafka/rating/
+Content-Type: application/json
+
+{
+    "user_id": "500271",
+    "movie_id": "tt0120338",
+    "value": "10"
+}
+###
+POST http://127.0.0.1:8000/ugc/api/v1/kafka/like/
+Content-Type: application/json
+
+{
+    "user_id": "500271",
+    "movie_id": "tt0120338",
+    "value": "1"
+} 
+###
+DELETE http://127.0.0.1:8000/ugc/api/v1/kafka/
+Content-Type: application/json

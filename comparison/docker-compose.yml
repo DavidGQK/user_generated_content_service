@@ -1,0 +1,26 @@
+---
+version: '2'
+services:
+  clickhouse:
+    image: yandex/clickhouse-server:20.4
+    container_name: clickhouse
+    hostname: clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    restart: always
+    volumes:
+      - ch_data:/ch_data
+
+  mongodb:
+    container_name: mongodb
+    image: mongo
+    ports:
+      - 27017:27017
+    volumes:
+      - mo_data:/mo_data
+
+volumes:
+  ch_data:
+  mo_data:
+

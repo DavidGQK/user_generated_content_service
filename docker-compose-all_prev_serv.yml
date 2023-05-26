@@ -1,0 +1,195 @@
+# docker-compose prod.yml
+version: '3'
+
+services:
+  auth_db:
+    image: postgres:13-alpine
+    container_name: auth_db
+    env_file: 
+      - ./.env
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data/
+    restart: always
+    networks:
+      - auth_movie_admin
+
+  movies_db:
+    image: postgres:13-alpine
+    container_name: movies_db
+    env_file: 
+      - ./.env
+    environment:
+      - POSTGRES_DB=movies_database
+      - POSTGRES_HOST=movies_db
+    volumes:
+      - ./django_admin_panel/scripts/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - movies_db_data:/var/lib/postgresql/data/
+    networks:
+      - auth_movie_admin
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    env_file: 
+      - ./.env
+    volumes:
+      - redis_data:/data
+    restart: always
+    networks:
+      - auth_movie_admin
+
+  elastic:
+    image: elasticsearch:7.16.2
+    container_name: elastic
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
+    volumes:
+      - es_data:/usr/share/elastic/data
+    restart: always
+    networks:
+      - auth_movie_admin
+
+  adminpanel:
+    # image: zomin/adminpanel
+    build: ./django_admin_panel
+    container_name: adminpanel
+    volumes:
+      - static_volume:/app/static
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=movies_database
+      - POSTGRES_HOST=movies_db
+    depends_on:
+      - movies_db
+    command: bash -c "python script.py && gunicorn config.wsgi --bind 0.0.0.0:8000"
+    restart: on-failure
+    networks:
+      - auth_movie_admin
+      - logging
+
+  etl:
+    # image: zomin/etl
+    build: ./etl
+    container_name: etl
+    volumes:
+      - etl_data:/etl/data
+    env_file:
+      - ./.env
+    environment:
+      - POSTGRES_DB=movies_database
+      - POSTGRES_HOST=movies_db
+    depends_on:
+      - movies_db
+      - elastic
+    networks:
+      - auth_movie_admin
+    restart: on-failure
+
+  movies_fastapi:
+    # image: zomin/movies_fastapi
+    build: ./movies_fastapi
+    container_name: movies_fastapi
+    env_file:
+      - .env
+    depends_on:
+      - redis
+      - etl
+    networks:
+      - auth_movie_admin
+      - logging
+
+  flask_auth:
+    build: ./flask_auth
+    container_name: flask_auth
+    environment:
+      - PYTHONPATH=/flask_auth
+    env_file:
+      - .env
+    working_dir: /flask_auth
+    depends_on:
+      - redis
+      - auth_db
+    restart: always
+    networks:
+      - auth_movie_admin
+      - logging
+
+  nginx:
+    container_name: nginx
+    image: nginx:1.20.1-alpine
+    volumes:
+      - static_volume:/app/static
+      - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/configs_all/:/etc/nginx/conf.d:ro
+      - /tmp/logs/nginx/:/var/log/nginx/
+    ports:
+      - "80:80"
+    restart: always
+    networks:
+      - auth_movie_admin
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: jaeger
+    volumes:
+      - jaeger_volume:/badger
+    environment:
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+    ports:
+      - 5775:5775/udp
+      - 6831:6831/udp
+      - 6832:6832/udp
+      - 5778:5778
+      - 16686:16686
+      - 14250:14250
+      - 14268:14268
+      - 14269:14269
+      - 4317:4317
+      - 4318:4318
+      - 9411:9411
+    depends_on:
+      - flask_auth
+      - movies_fastapi
+    restart: on-failure
+    networks:
+      - auth_movie_admin
+
+  filebeat_api:
+    image: elastic/filebeat:7.16.2
+    container_name: filebeat_api
+    volumes:
+      - /tmp/logs/nginx:/var/log/nginx:ro
+      - ./deploy/filebeat_ugc.yml:/usr/share/filebeat/filebeat.yml
+    command: filebeat -e -strict.perms=false
+    depends_on:
+      - movies_fastapi
+      - nginx
+      - logstash
+      - elasticsearch
+      - kibana
+    links:
+      - logstash
+    networks:
+      - auth_movie_admin
+      - logging
+
+volumes:
+  auth_db_data:
+  movies_db_data:
+  redis_data:
+  static_volume:
+  etl_data:
+  es_data:
+  jaeger_volume:
+
+networks:
+  auth_movie_admin:
+    driver: bridge
+  logging:
+    driver: bridge

@@ -1,0 +1,15 @@
+asgiref==3.5.2
+Django==4.1.2
+django-debug-toolbar==3.7.0
+django-split-settings==1.2.0
+flake8==5.0.4
+mccabe==0.7.0
+psycopg2-binary==2.9.4
+pycodestyle==2.9.1
+pyflakes==2.5.0
+python-dotenv==0.21.0
+sqlparse==0.4.3
+tzdata==2022.5
+gunicorn==20.1.0
+django-cors-headers==3.13.0
+python-logstash==0.4.8

@@ -1,0 +1,67 @@
+# Develop
+version: '3.8'
+
+services:
+  elastic:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    container_name: elastic
+    environment:
+      - xpack.security.enabled=false
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1024m -Xmx1024m
+      - logger.level=WARN
+    volumes:
+      - es_data:/usr/share/elastic/data
+    # restart: always
+    ports:
+      - 9200:9200
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    # environment:
+    #   - log.level=ERROR
+    volumes:
+      - redis_data:/data
+    depends_on:
+      - elastic
+    # restart: always
+    ports:
+      - 6379:6379
+
+  fastapi:
+    build: ../../.
+    image: fastapi-image
+    container_name: fastapi
+    env_file:
+      - .env
+    depends_on:
+      - redis
+    # restart: always
+    ports:
+      - 8000:8000
+    # expose:
+    #   - 8000
+
+  tests:
+    image: fastapi-image
+    container_name: tests
+    environment:
+      - PYTHONPATH=/src/tests
+    env_file:
+      - .env
+    working_dir: /src/tests
+    depends_on:
+      - fastapi
+      - elastic
+      - redis
+    entrypoint: >
+      sh -c "pip install -r ./functional/requirements.txt
+      && python3 ./functional/utils/wait_for_es.py
+      && python3 ./functional/utils/wait_for_redis.py
+      && python3 ./functional/utils/create_idx.py
+      && pytest ./functional/src_test -v -s --log-level=INFO"
+
+volumes:
+  es_data:
+  redis_data:
